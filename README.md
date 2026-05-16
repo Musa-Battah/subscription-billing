@@ -4,7 +4,7 @@ A complete subscription billing system built for Nigerian businesses. Supports m
 
 ## 🚀 Live Demo
 
-[View Live Demo](https://your-subscription-billing.vercel.app)
+[View Live Demo](https://subscription-billing-nu.vercel.app/)
 
 ## ✨ Features
 
