@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
@@ -123,5 +124,13 @@ export default function RegisterPage() {
         Already have an account? <Link href="/login" style={{ color: '#fff' }}>Login</Link>
       </p>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="loading">Loading...</div>}>
+      <RegisterContent />
+    </Suspense>
   );
 }

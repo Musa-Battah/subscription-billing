@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planId = searchParams.get('plan');
@@ -31,55 +32,8 @@ export default function CheckoutPage() {
     fetchData();
   }, [planId]);
 
-  const fetchData = async () => {
-    try {
-      // Fetch user
-      const userRes = await fetch('/api/auth/me');
-      if (!userRes.ok) {
-        router.push(`/login?redirect=/checkout?plan=${planId}`);
-        return;
-      }
-      const userData = await userRes.json();
-      setUser(userData.user);
-      
-      // Fetch plan details
-      const planRes = await fetch('/api/plans');
-      const plans = await planRes.json();
-      const selectedPlan = plans.find(p => p.id === parseInt(planId));
-      if (!selectedPlan) {
-        setError('Plan not found');
-        setLoading(false);
-        return;
-      }
-      setPlan(selectedPlan);
-      
-      // Check if user already has customer record
-      try {
-        const customerRes = await fetch('/api/customers/me');
-        if (customerRes.ok) {
-          const customerData = await customerRes.json();
-          setCustomer(customerData);
-          setBusinessInfo({
-            business_name: customerData.business_name || '',
-            business_type: customerData.business_type || 'individual',
-            phone: customerData.phone || '',
-            address: customerData.address || '',
-            city: customerData.city || '',
-            state: customerData.state || ''
-          });
-        }
-      } catch (err) {
-        // No customer yet, that's fine
-        console.log('No existing customer');
-      }
-      
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Failed to load checkout data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Rest of your existing component logic stays the same...
+  // (keep all your existing functions: fetchData, formatNaira, handleSubmit, etc.)
 
   const formatNaira = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -155,9 +109,7 @@ export default function CheckoutPage() {
         throw new Error(errorData.error || 'Failed to create invoice');
       }
       
-      const invoice = await invoiceRes.json();
-      
-      // Redirect to success (in production, redirect to payment gateway)
+      // Redirect to success
       router.push(`/payment/success?subscription=${subscription.id}`);
       
     } catch (err) {
@@ -165,6 +117,56 @@ export default function CheckoutPage() {
       setError(err.message || 'Failed to create subscription');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      // Fetch user
+      const userRes = await fetch('/api/auth/me');
+      if (!userRes.ok) {
+        router.push(`/login?redirect=/checkout?plan=${planId}`);
+        return;
+      }
+      const userData = await userRes.json();
+      setUser(userData.user);
+      
+      // Fetch plan details
+      const planRes = await fetch('/api/plans');
+      const plans = await planRes.json();
+      const selectedPlan = plans.find(p => p.id === parseInt(planId));
+      if (!selectedPlan) {
+        setError('Plan not found');
+        setLoading(false);
+        return;
+      }
+      setPlan(selectedPlan);
+      
+      // Check if user already has customer record
+      try {
+        const customerRes = await fetch('/api/customers/me');
+        if (customerRes.ok) {
+          const customerData = await customerRes.json();
+          setCustomer(customerData);
+          setBusinessInfo({
+            business_name: customerData.business_name || '',
+            business_type: customerData.business_type || 'individual',
+            phone: customerData.phone || '',
+            address: customerData.address || '',
+            city: customerData.city || '',
+            state: customerData.state || ''
+          });
+        }
+      } catch (err) {
+        // No customer yet, that's fine
+        console.log('No existing customer');
+      }
+      
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Failed to load checkout data');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -325,5 +327,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="loading">Loading checkout...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
