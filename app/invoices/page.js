@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -38,9 +39,41 @@ export default function InvoicesPage() {
     }).format(amount);
   };
 
-  const payInvoice = async (id) => {
-    alert('Payment integration will go here');
-    // Integrate Paystack here
+  const handlePayNow = async (invoice) => {
+    setProcessingId(invoice.id);
+    
+    try {
+      // Get user email
+      const userRes = await fetch('/api/auth/me');
+      const userData = await userRes.json();
+      
+      // Initialize payment
+      const paymentRes = await fetch('/api/payment/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: invoice.total,
+          email: userData.user.email,
+          invoiceId: invoice.id,
+          subscriptionId: invoice.subscription_id,
+          customerId: invoice.customer_id
+        })
+      });
+      
+      const payment = await paymentRes.json();
+      
+      if (payment.success) {
+        // Redirect to Paystack payment page
+        window.location.href = payment.authorization_url;
+      } else {
+        alert('Payment initialization failed');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Failed to process payment');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   if (loading) {
@@ -56,6 +89,7 @@ export default function InvoicesPage() {
           <div className="empty-state-icon">📄</div>
           <div className="empty-state-title">No Invoices Yet</div>
           <div className="empty-state-text">Your invoice history will appear here</div>
+          <a href="/plans" className="btn-primary">View Plans</a>
         </div>
       ) : (
         <div className="table-container">
@@ -85,12 +119,16 @@ export default function InvoicesPage() {
                   <td>
                     {invoice.status === 'pending' && (
                       <button 
-                        onClick={() => payInvoice(invoice.id)}
+                        onClick={() => handlePayNow(invoice)}
                         className="btn-primary"
-                        style={{ padding: '4px 12px', fontSize: '12px' }}
+                        style={{ padding: '8px 16px', fontSize: '14px' }}
+                        disabled={processingId === invoice.id}
                       >
-                        Pay Now
+                        {processingId === invoice.id ? 'Processing...' : 'Pay Now'}
                       </button>
+                    )}
+                    {invoice.status === 'paid' && (
+                      <span style={{ color: '#4CAF50' }}>✓ Paid</span>
                     )}
                   </td>
                 </tr>
